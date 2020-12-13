@@ -74,6 +74,8 @@ public class IabHelper {
     boolean mDebugLog = false;
     String mDebugTag = "IabHelper";
 
+    String market;
+
     // Is setup done?
     boolean mSetupDone = false;
 
@@ -160,9 +162,10 @@ public class IabHelper {
      *     public key in your application's page on Google Play Developer Console. Note that this
      *     is NOT your "developer public key".
      */
-    public IabHelper(Context ctx, String base64PublicKey) {
+    public IabHelper(Context ctx, String base64PublicKey, String market) {
         mContext = ctx.getApplicationContext();
         mSignatureBase64 = base64PublicKey;
+        this.market = market;
         logDebug("IAB helper created.");
     }
 
@@ -262,8 +265,20 @@ public class IabHelper {
             }
         };
 
-        Intent serviceIntent = new Intent("ir.cafebazaar.pardakht.InAppBillingService.BIND");
-        serviceIntent.setPackage("com.farsitel.bazaar");
+        String mAction = "com.android.vending.billing.InAppBillingService.BIND";
+        String mPackageName = "com.android.vending";
+
+        if (market.equalsIgnoreCase("bazaar")) {
+            mAction = "ir.cafebazaar.pardakht.InAppBillingService.BIND";
+            mPackageName = "com.farsitel.bazaar";
+        } else if (market.equalsIgnoreCase("myket")) {
+            mAction = "ir.mservices.market.InAppBillingService.BIND";
+            mPackageName = "ir.mservices.market";
+        }
+
+        Intent serviceIntent = new Intent(mAction);
+        serviceIntent.setPackage(mPackageName);
+
         if (!mContext.getPackageManager().queryIntentServices(serviceIntent, 0).isEmpty()) {
             // service available to handle that Intent
             mContext.bindService(serviceIntent, mServiceConn, Context.BIND_AUTO_CREATE);
