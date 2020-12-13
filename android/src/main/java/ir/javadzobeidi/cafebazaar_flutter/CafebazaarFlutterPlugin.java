@@ -20,14 +20,14 @@ import ir.javadzobeidi.cafebazaar_flutter.util.IabResult;
 import ir.javadzobeidi.cafebazaar_flutter.util.Inventory;
 import ir.javadzobeidi.cafebazaar_flutter.util.Purchase;
 
-
-
-
 public class CafebazaarFlutterPlugin implements MethodChannel.MethodCallHandler {
 
 
     // Debug tag, for logging
     private static final String TAG = "cafebazaar_Plugin";
+
+    // Set market
+    private String market = "google";
 
     // SKUs for our products: the premium upgrade (non-consumable)
     private String SKU = "";
@@ -72,6 +72,9 @@ public class CafebazaarFlutterPlugin implements MethodChannel.MethodCallHandler 
         String sku;
 
         switch (call.method) {
+            case "init":
+                market = call.argument("market");
+                break;
             case "initPay":
                 onDestroy();
                 String rsaKey = call.argument("rsaKey");
@@ -123,22 +126,39 @@ public class CafebazaarFlutterPlugin implements MethodChannel.MethodCallHandler 
 
     private void referralToProgram(String packageName) {
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse("bazaar://details?id=" + packageName));
-        intent.setPackage("com.farsitel.bazaar");
+
+        if (market.equalsIgnoreCase("bazaar")) {
+            intent.setData(Uri.parse("bazaar://details?id=" + packageName));
+            intent.setPackage("com.farsitel.bazaar");
+        } else if (market.equalsIgnoreCase("myket")) {
+            intent.setData(Uri.parse("myket://details?id=" + packageName));
+        }
+
         activity.startActivity(intent);
     }
 
     private void referralToComment(String packageName) {
         Intent intent = new Intent(Intent.ACTION_EDIT);
-        intent.setData(Uri.parse("bazaar://details?id=" + packageName));
-        intent.setPackage("com.farsitel.bazaar");
+
+        if (market.equalsIgnoreCase("bazaar")) {
+            intent.setData(Uri.parse("bazaar://details?id=" + packageName));
+            intent.setPackage("com.farsitel.bazaar");
+        } else if (market.equalsIgnoreCase("myket")) {
+            intent.setData(Uri.parse("myket://comment?id=" + packageName));
+        }
+
         activity.startActivity(intent);
     }
 
     private void referralToDeveloperPage(String developerId) {
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse("bazaar://collection?slug=by_author&aid=" + developerId));
-        intent.setPackage("com.farsitel.bazaar");
+
+        if (market.equalsIgnoreCase("bazaar")) {
+            intent.setData(Uri.parse("bazaar://collection?slug=by_author&aid=" + developerId));
+            intent.setPackage("com.farsitel.bazaar");
+        } else if (market.equalsIgnoreCase("myket")) {
+            intent.setData(Uri.parse("myket://developer/" + developerId));
+        }
         activity.startActivity(intent);
     }
 
@@ -151,7 +171,7 @@ public class CafebazaarFlutterPlugin implements MethodChannel.MethodCallHandler 
 
 
     private void initPay(String rsaKey, boolean debugMode, final MethodChannel.Result methodResult) {
-        mHelper = new IabHelper(activity, rsaKey);
+        mHelper = new IabHelper(activity, rsaKey, market);
         mHelper.enableDebugLogging(debugMode);
         // Log.d(TAG, "Starting setup.");
         mHelper.startSetup(new IabHelper.OnIabSetupFinishedListener() {
