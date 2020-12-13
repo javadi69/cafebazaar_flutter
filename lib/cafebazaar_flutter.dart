@@ -5,8 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 class CafebazaarFlutter {
-  static const MethodChannel _channel =
-      const MethodChannel('cafebazaar_flutter');
+  static const MethodChannel _channel = const MethodChannel('cafebazaar_flutter');
+
+  static void init({@required String market}) {
+    _channel.invokeMethod("init", {'market': market});
+  }
 
   static Future<Null> showProgramPage(String packageName) async {
     Map<String, dynamic> args = <String, dynamic>{};
@@ -39,8 +42,7 @@ class CafebazaarFlutter {
     return null;
   }
 
-  static Future<bool> initPay(
-      {@required String rsaKey, bool debugMode = false}) async {
+  static Future<bool> initPay({@required String rsaKey, bool debugMode = false}) async {
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent("rsaKey", () => rsaKey);
     args.putIfAbsent("debugMode", () => debugMode);
@@ -62,10 +64,7 @@ class CafebazaarFlutter {
     return result;
   }
 
-  static Future<dynamic> launchPurchaseFlow(
-      {@required String sku,
-      bool consumption = false,
-      String payload = ""}) async {
+  static Future<dynamic> launchPurchaseFlow({@required String sku, bool consumption = false, String payload = ""}) async {
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent("productKey", () => sku);
     args.putIfAbsent("payload", () => payload);
@@ -76,9 +75,8 @@ class CafebazaarFlutter {
 
   static Future<bool> verifyDeveloperPayload({@required String payload}) async {
     Map<String, dynamic> args = <String, dynamic>{};
-    String result =
-        await _channel.invokeMethod("verifyDeveloperPayload", args);
+    String result = await _channel.invokeMethod("verifyDeveloperPayload", args);
     print(result);
-    return result==payload;
+    return result == payload;
   }
 }
