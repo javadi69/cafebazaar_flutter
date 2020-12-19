@@ -5,14 +5,21 @@ import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import io.flutter.embedding.engine.plugins.FlutterPlugin;
+import io.flutter.embedding.engine.plugins.activity.ActivityAware;
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
+import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
+import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.PluginRegistry;
 import ir.javadzobeidi.cafebazaar_flutter.util.IabException;
 import ir.javadzobeidi.cafebazaar_flutter.util.IabHelper;
@@ -20,8 +27,7 @@ import ir.javadzobeidi.cafebazaar_flutter.util.IabResult;
 import ir.javadzobeidi.cafebazaar_flutter.util.Inventory;
 import ir.javadzobeidi.cafebazaar_flutter.util.Purchase;
 
-public class CafebazaarFlutterPlugin implements MethodChannel.MethodCallHandler {
-
+public class CafebazaarFlutterPlugin implements FlutterPlugin, MethodCallHandler, ActivityAware {
 
     // Debug tag, for logging
     private static final String TAG = "cafebazaar_Plugin";
@@ -47,26 +53,71 @@ public class CafebazaarFlutterPlugin implements MethodChannel.MethodCallHandler 
     private Activity activity;
 
     public static void registerWith(PluginRegistry.Registrar registrar) {
-        final MethodChannel channel = new MethodChannel(registrar.messenger(), "cafebazaar_flutter");
-        channel.setMethodCallHandler(new CafebazaarFlutterPlugin(registrar, channel));
-
-    }
-
-    private CafebazaarFlutterPlugin(PluginRegistry.Registrar registrar, MethodChannel channel) {
-        this.activity = registrar.activity();
-        this.channel = channel;
-        this.channel.setMethodCallHandler(this);
-        registrar.addActivityResultListener(new PluginRegistry.ActivityResultListener() {
-            @Override
-            public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
-                activityResult(requestCode, resultCode, data);
-                return false;
-            }
-        });
+        CafebazaarFlutterPlugin plugin = new CafebazaarFlutterPlugin();
+        plugin.activity = registrar.activity();
+        plugin.setupMethodChannel(registrar.messenger());
+        plugin.setupResultListener(registrar, null);
     }
 
     @Override
-    public void onMethodCall(MethodCall call, MethodChannel.Result result) {
+    public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
+        setupMethodChannel(binding.getBinaryMessenger());
+    }
+
+    @Override
+    public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
+        channel.setMethodCallHandler(null);
+        channel = null;
+    }
+
+    @Override
+    public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
+        activity = binding.getActivity();
+        setupResultListener(null, binding);
+    }
+
+    @Override
+    public void onDetachedFromActivityForConfigChanges() {
+
+    }
+
+    @Override
+    public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding binding) {
+
+    }
+
+    @Override
+    public void onDetachedFromActivity() {
+
+    }
+
+    private void setupMethodChannel(BinaryMessenger messenger) {
+        channel = new MethodChannel(messenger, "cafebazaar_flutter");
+        channel.setMethodCallHandler(this);
+    }
+
+    private void setupResultListener(PluginRegistry.Registrar registrar, ActivityPluginBinding activityBinding) {
+        if (registrar != null) {
+            registrar.addActivityResultListener(new PluginRegistry.ActivityResultListener() {
+                @Override
+                public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
+                    activityResult(requestCode, resultCode, data);
+                    return false;
+                }
+            });
+        } else if (activityBinding != null) {
+            activityBinding.addActivityResultListener(new PluginRegistry.ActivityResultListener() {
+                @Override
+                public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
+                    activityResult(requestCode, resultCode, data);
+                    return false;
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onMethodCall(MethodCall call, @NonNull MethodChannel.Result result) {
         pendingResult = result;
         String payload;
         String sku;
@@ -191,7 +242,7 @@ public class CafebazaarFlutterPlugin implements MethodChannel.MethodCallHandler 
         mHelper = null;
     }
 
-   private IabHelper.QueryInventoryFinishedListener mGotInventoryListener = new IabHelper.QueryInventoryFinishedListener() {
+    private IabHelper.QueryInventoryFinishedListener mGotInventoryListener = new IabHelper.QueryInventoryFinishedListener() {
         public void onQueryInventoryFinished(IabResult result, Inventory inventory) {
             if (mHelper == null) return;
             // Log.d(TAG, "Query inventory finished.");
